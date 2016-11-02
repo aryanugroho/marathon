@@ -5,12 +5,8 @@ import java.io.File
 import java.util.UUID
 
 import mesosphere.AkkaIntegrationTest
-import mesosphere.marathon.Protos.Constraint.Operator
-import mesosphere.marathon.api.v2.json.AppUpdate
-import mesosphere.marathon.core.health.{ MarathonHttpHealthCheck, PortReference }
-import mesosphere.marathon.core.readiness.ReadinessCheck
 import mesosphere.marathon.integration.setup._
-import mesosphere.marathon.state.{ AppDefinition, PathId, PortDefinition }
+import mesosphere.marathon.state.PathId
 import org.apache.commons.io.FileUtils
 
 import scala.collection.immutable
@@ -23,6 +19,7 @@ import scala.util.Try
   */
 @IntegrationTest
 class RestartIntegrationTest extends AkkaIntegrationTest with MesosClusterTest with ZookeeperServerTest with MarathonFixture {
+  import PathId._
   val abdicationLoops = 2
 
   "Restarting Marathon" when {
@@ -39,21 +36,18 @@ class RestartIntegrationTest extends AkkaIntegrationTest with MesosClusterTest w
     "not kill a running task currently involved in a deployment" in withMarathon("restart-dont-kill") { (server, f) =>
       Given("a new app with an impossible constraint")
       // Running locally, the constraint of a unique hostname should prevent the second instance from deploying.
-      val constraint = Protos.Constraint.newBuilder()
-        .setField("hostname")
-        .setOperator(Operator.UNIQUE)
-        .build()
+      val constraint = raml.Constraints("hostname" -> "UNIQUE")
       val app = f.appProxy(PathId("/restart-dont-kill"), "v2", instances = 2, healthCheck = None)
-        .copy(constraints = Set(constraint))
+        .copy(constraints = constraint)
       f.marathon.createAppV2(app)
 
       When("one of the tasks is deployed")
-      val tasksBeforeAbdication = f.waitForTasks(app.id, 1)
+      val tasksBeforeAbdication = f.waitForTasks(app.id.toPath, 1)
 
       (1 to abdicationLoops).foreach { _ =>
         And("the leader abdicates")
         server.restart()
-        val tasksAfterFirstAbdication = f.waitForTasks(app.id, 1)
+        val tasksAfterFirstAbdication = f.waitForTasks(app.id.toPath, 1)
         Then("the already running task should not be killed")
         tasksBeforeAbdication should be(tasksAfterFirstAbdication)
       }
@@ -61,39 +55,40 @@ class RestartIntegrationTest extends AkkaIntegrationTest with MesosClusterTest w
 
     "readiness" should {
       "deployment with 1 ready and 1 not ready instance is continued properly after a restart" in withMarathon("readiness") { (server, f) =>
-        val readinessCheck = ReadinessCheck(
+        val readinessCheck = raml.ReadinessCheck(
           "ready",
           portName = "http",
           path = "/v1/plan",
-          interval = 2.seconds,
-          timeout = 1.second,
+          intervalSeconds = 2,
+          timeoutSeconds = 1,
           preserveLastResponse = true)
 
         val appId = f.testBasePath / "app"
         val create = f.appProxy(appId, versionId = "v1", instances = 2, healthCheck = None)
 
         val plan = "phase(block1)"
-        val update = AppUpdate(
+        val update = raml.AppUpdate(
           cmd = Some(s"""${serviceMockScript(f)} '$plan'"""),
-          portDefinitions = Some(immutable.Seq(PortDefinition(0, name = Some("http")))),
+          portDefinitions = Some(immutable.Seq(raml.PortDefinition(name = Some("http")))),
           readinessChecks = Some(Seq(readinessCheck)))
         testDeployments(server, f, appId, create, update)
       }
     }
     "health checks" should {
       "deployment with 1 healthy and 1 unhealthy instance is continued properly after master abdication" in withMarathon("health-check") { (server, f) =>
-        val healthCheck: MarathonHttpHealthCheck = MarathonHttpHealthCheck(
+        val healthCheck: raml.AppHealthCheck = raml.AppHealthCheck(
           path = Some("/v1/plan"),
-          portIndex = Some(PortReference(0)),
-          interval = 2.seconds,
-          timeout = 1.second)
+          portIndex = Some(0),
+          intervalSeconds = 2,
+          timeoutSeconds = 1,
+          protocol = raml.AppHealthCheckProtocol.Http)
         val appId = f.testBasePath / "app"
         val create = f.appProxy(appId, versionId = "v1", instances = 2, healthCheck = None)
 
         val plan = "phase(block1)"
-        val update = AppUpdate(
+        val update = raml.AppUpdate(
           cmd = Some(s"""${serviceMockScript(f)} '$plan'"""),
-          portDefinitions = Some(immutable.Seq(PortDefinition(0, name = Some("http")))),
+          portDefinitions = Some(immutable.Seq(raml.PortDefinition(name = Some("http")))),
           healthChecks = Some(Set(healthCheck)))
 
         testDeployments(server, f, appId, create, update)
@@ -101,7 +96,7 @@ class RestartIntegrationTest extends AkkaIntegrationTest with MesosClusterTest w
     }
   }
 
-  def testDeployments(server: LocalMarathon, f: MarathonTest, appId: PathId, createApp: AppDefinition, updateApp: AppUpdate) = {
+  def testDeployments(server: LocalMarathon, f: MarathonTest, appId: PathId, createApp: raml.App, updateApp: raml.AppUpdate): Unit = {
     Given("a new simple app with 2 instances")
     createApp.instances shouldBe 2
 
@@ -109,7 +104,7 @@ class RestartIntegrationTest extends AkkaIntegrationTest with MesosClusterTest w
     created.code should be (201)
     f.waitForDeployment(created)
 
-    val started = f.marathon.tasks(appId)
+    f.marathon.tasks(appId)
     logger.debug(s"Started app: ${f.marathon.app(appId).entityPrettyJsonString}")
 
     When("updating the app")

@@ -10,6 +10,7 @@ types:
       name?:
         type: string
         description: The name used to identify this readiness check
+        minLength: 1
         default: readinessCheck
       protocol?:
         type: strings.HttpScheme
@@ -18,11 +19,11 @@ types:
         type: strings.Path
         description: |
           Path to endpoint exposed by the task that will provide readiness status.
+        minLength: 1
         example: /path/to/health.
         default: /
       portName?:
-        type: string
-        pattern: ^[a-z][-a-z0-9]*$
+        type: strings.LegacyName
         description: |
           Name of the port to query as described in the portDefinitions.
         example: http-api
@@ -37,6 +38,7 @@ types:
       timeoutSeconds?:
         type: integer
         format: int32
+        minimum: 1
         default: 10
         description: |
           Number of seconds after which a health check is considered a failure
@@ -51,6 +53,7 @@ types:
           maximum: 999
         description: The HTTP(s) status codes to treat as 'ready'
         uniqueItems: true
+        minItems: 1
       preserveLastResponse?:
         type: boolean
         description: |

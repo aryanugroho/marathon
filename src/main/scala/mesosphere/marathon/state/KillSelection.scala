@@ -15,24 +15,19 @@ sealed trait KillSelection {
 }
 
 object KillSelection {
-  def withName(value: String): KillSelection = {
-    if (value == "YOUNGEST_FIRST") YoungestFirst
-    else if (value == "OLDEST_FIRST") OldestFirst
-    else throw new NoSuchElementException(s"There is no KillSelection with name '$value'")
-  }
 
   case object YoungestFirst extends KillSelection {
-    override val value = "YOUNGEST_FIRST"
+    override val value = raml.KillSelection.YoungestFirst.value
     override def toProto: Protos.KillSelection =
       Protos.KillSelection.YoungestFirst
   }
   case object OldestFirst extends KillSelection {
-    override val value = "OLDEST_FIRST"
+    override val value = raml.KillSelection.OldestFirst.value
     override def toProto: Protos.KillSelection =
       Protos.KillSelection.OldestFirst
   }
 
-  val DefaultKillSelection: KillSelection = YoungestFirst
+  def DefaultKillSelection: KillSelection = raml.KillSelection.DefaultValue.fromRaml
 
   def fromProto(proto: Protos.KillSelection): KillSelection = {
     proto match {
