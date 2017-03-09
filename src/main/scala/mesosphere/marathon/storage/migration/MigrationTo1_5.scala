@@ -71,7 +71,7 @@ case class MigrationTo1_5(
   def migrateApp(service: ServiceDefinition)(implicit appNormalizer: Normalization[raml.App]): AppDefinition = {
     import Normalization._
     val rawRaml = Raml.toRaml(service)
-    val normalizedApp = rawRaml.norm
+    val normalizedApp = rawRaml.normalize
     val appDef = normalizedApp.fromRaml
     // fixup version since it's intentionally lost in the conversion from App to AppDefinition
     appDef.copy(versionInfo = AppDefinition.versionInfoFrom(service))

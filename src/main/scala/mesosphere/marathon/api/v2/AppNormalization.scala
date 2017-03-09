@@ -126,13 +126,13 @@ object AppNormalization {
     * @return an API object in canonical form (read: doesn't use deprecated APIs)
     */
   val forDeprecatedUpdates: Normalization[AppUpdate] = Normalization { update =>
-    val fetch = Artifacts(update.uris, update.fetch).norm.fetch
+    val fetch = Artifacts(update.uris, update.fetch).normalize.fetch
 
     val networks = NetworkTranslation(
       update.ipAddress,
       update.container.flatMap(_.docker.flatMap(_.network)),
       update.networks
-    ).norm.networks
+    ).normalize.networks
 
     // no container specified in JSON but ipAddress is ==> implies empty Mesos container
     val container = update.container.orElse(update.ipAddress.map(_ => Container(EngineType.Mesos))).map { c =>
@@ -163,14 +163,14 @@ object AppNormalization {
       portDefinitions = portDefinitions,
       ports = None,
       // health checks
-      healthChecks = update.healthChecks.map(_.norm),
+      healthChecks = update.healthChecks.map(_.normalize),
       readinessChecks = update.readinessChecks.map(_.map(normalizeReadinessCheck))
     )
   }
 
   def forUpdates(config: Config): Normalization[AppUpdate] = Normalization { update =>
-    val networks = Networks(config, update.networks).norm.networks
-    val container = NetworkedContainer(update.networks, update.container).norm.container
+    val networks = Networks(config, update.networks).normalize.networks
+    val container = NetworkedContainer(update.networks, update.container).normalize.container
     update.copy(
       container = container,
       networks = networks
@@ -212,13 +212,13 @@ object AppNormalization {
     */
   val forDeprecated: Normalization[App] = Normalization { app =>
     import state.PathId._
-    val fetch: Seq[Artifact] = Artifacts(app.uris, Option(app.fetch)).norm.fetch.getOrElse(Nil)
+    val fetch: Seq[Artifact] = Artifacts(app.uris, Option(app.fetch)).normalize.fetch.getOrElse(Nil)
 
     val networks: Seq[Network] = NetworkTranslation(
       app.ipAddress,
       app.container.flatMap(_.docker.flatMap(_.network)),
       if (app.networks.isEmpty) None else Some(app.networks)
-    ).norm.networks.getOrElse(Nil)
+    ).normalize.networks.getOrElse(Nil)
 
     // canonical validation doesn't allow both portDefinitions and container.portMappings:
     // container and portDefinitions normalization (below) deal with dropping unsupported port configs.
@@ -246,7 +246,7 @@ object AppNormalization {
     val healthChecks =
       // for an app (not an update) only normalize if there are ports defined somewhere.
       // ??? intentionally consider the non-normalized portDefinitions since that's what the old Formats code did
-      if (app.portDefinitions.exists(_.nonEmpty) || container.exists(_.portMappings.nonEmpty)) app.healthChecks.norm
+      if (app.portDefinitions.exists(_.nonEmpty) || container.exists(_.portMappings.nonEmpty)) app.healthChecks.normalize
       else app.healthChecks
 
     // cheating: we know that this is invoked before canonical validation so we provide a default here.
@@ -289,8 +289,8 @@ object AppNormalization {
   }
 
   def apply(config: Config): Normalization[App] = Normalization { app =>
-    val networks = Networks(config, Some(app.networks)).norm.networks.filter(_.nonEmpty).getOrElse(DefaultNetworks)
-    val container = NetworkedContainer(Some(networks), app.container).norm.container
+    val networks = Networks(config, Some(app.networks)).normalize.networks.filter(_.nonEmpty).getOrElse(DefaultNetworks)
+    val container = NetworkedContainer(Some(networks), app.container).normalize.container
 
     val defaultUnreachable: UnreachableStrategy = {
       val hasPersistentVols = app.container.exists(_.volumes.exists(_.persistent.nonEmpty))

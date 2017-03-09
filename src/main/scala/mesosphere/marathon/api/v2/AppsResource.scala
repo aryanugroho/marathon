@@ -76,7 +76,7 @@ class AppsResource @Inject() (
     @Context req: HttpServletRequest): Response = authenticated(req) { implicit identity =>
 
     assumeValid {
-      val rawApp = Raml.fromRaml(Json.parse(body).as[raml.App].norm)
+      val rawApp = Raml.fromRaml(Json.parse(body).as[raml.App].normalize)
       val now = clock.now()
       val app = validateOrThrow(rawApp.withCanonizedIds()).copy(versionInfo = VersionInfo.OnlyVersion(now))
 
@@ -152,7 +152,7 @@ class AppsResource @Inject() (
     val now = clock.now()
 
     assumeValid {
-      val appUpdate: raml.AppUpdate = Json.parse(body).as[raml.AppUpdate].copy(id = Some(appId.toString)).norm
+      val appUpdate: raml.AppUpdate = Json.parse(body).as[raml.AppUpdate].copy(id = Some(appId.toString)).normalize
       val plan = result(groupManager.updateApp(appId, updateOrCreate(appId, _, appUpdate), now, force))
 
       val response = plan.original.app(appId)
@@ -173,7 +173,7 @@ class AppsResource @Inject() (
 
     assumeValid {
       val updates = validateOrThrow(Json.parse(body).as[Seq[raml.AppUpdate]].map { upd =>
-        withCanonizedIds(upd.norm)
+        withCanonizedIds(upd.normalize)
       })
 
       val version = clock.now()
@@ -240,7 +240,7 @@ class AppsResource @Inject() (
     existing: Option[AppDefinition],
     appUpdate: raml.AppUpdate)(implicit identity: Identity): AppDefinition = {
     def createApp(): AppDefinition = {
-      val app = withoutPriorAppDefinition(appUpdate, appId).norm
+      val app = withoutPriorAppDefinition(appUpdate, appId).normalize
       // versionInfo doesn't change - it's never overridden by an AppUpdate.
       // the call to fromRaml loses the original versionInfo; it's just the current time in this case
       // so we just query for that (using a more predictable clock than AppDefinition has access to)
@@ -249,7 +249,7 @@ class AppsResource @Inject() (
     }
 
     def updateApp(current: AppDefinition): AppDefinition = {
-      val app = Raml.fromRaml(appUpdate -> current).norm
+      val app = Raml.fromRaml(appUpdate -> current).normalize
       // versionInfo doesn't change - it's never overridden by an AppUpdate.
       // the call to fromRaml loses the original versionInfo; we take special care to preserve it
       val appDef = validateOrThrow(Raml.fromRaml(app).copy(versionInfo = current.versionInfo))

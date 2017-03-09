@@ -65,22 +65,22 @@ class AppNormalizationTest extends UnitTest {
 
     "normalize fetch and uris fields" when {
       "uris are present and fetch is not" in {
-        val urisNoFetch = AppNormalization.Artifacts(Option(Seq("a")), None).norm.fetch
+        val urisNoFetch = AppNormalization.Artifacts(Option(Seq("a")), None).normalize.fetch
         val expected = Option(Seq(Artifact("a", extract = false)))
         urisNoFetch should be(expected)
       }
       "uris are present and fetch is an empty list" in {
-        val urisEmptyFetch = AppNormalization.Artifacts(Option(Seq("a")), Option(Nil)).norm.fetch
+        val urisEmptyFetch = AppNormalization.Artifacts(Option(Seq("a")), Option(Nil)).normalize.fetch
         val expected = Option(Seq(Artifact("a", extract = false)))
         urisEmptyFetch should be(expected)
       }
       "fetch is present and uris are not" in {
-        val fetchNoUris = AppNormalization.Artifacts(None, Option(Seq(Artifact("a")))).norm.fetch
+        val fetchNoUris = AppNormalization.Artifacts(None, Option(Seq(Artifact("a")))).normalize.fetch
         val expected = Option(Seq(Artifact("a")))
         fetchNoUris should be(expected)
       }
       "fetch is present and uris are an empty list" in {
-        val fetchEmptyUris = AppNormalization.Artifacts(Option(Nil), Option(Seq(Artifact("a")))).norm.fetch
+        val fetchEmptyUris = AppNormalization.Artifacts(Option(Nil), Option(Seq(Artifact("a")))).normalize.fetch
         val expected = Option(Seq(Artifact("a")))
         fetchEmptyUris should be(expected)
       }
@@ -94,13 +94,13 @@ class AppNormalizationTest extends UnitTest {
       }
 
       "using legacy docker networking API, without a named network" in new Fixture {
-        val normalized = legacyDockerApp.copy(ipAddress = Option(IpAddress())).norm
+        val normalized = legacyDockerApp.copy(ipAddress = Option(IpAddress())).normalize
         normalized should be(normalizedDockerApp.copy(networks = Seq(Network(name = defaultNetworkName))))
       }
 
       "using legacy IP/CT networking API without a named network" in new Fixture {
         legacyMesosApp.copy(ipAddress = legacyMesosApp.ipAddress.map(_.copy(
-          networkName = None))).norm should be(normalizedMesosApp.copy(networks = Seq(Network(name = defaultNetworkName))))
+          networkName = None))).normalize should be(normalizedMesosApp.copy(networks = Seq(Network(name = defaultNetworkName))))
       }
     }
 
@@ -110,12 +110,12 @@ class AppNormalizationTest extends UnitTest {
       }
 
       "using legacy docker networking API" in new Fixture {
-        val normalized = legacyDockerApp.norm
+        val normalized = legacyDockerApp.normalize
         normalized should be(normalizedDockerApp)
       }
 
       "using legacy docker networking API, without a named network" in new Fixture {
-        val normalized = legacyDockerApp.copy(ipAddress = Option(IpAddress())).norm
+        val normalized = legacyDockerApp.copy(ipAddress = Option(IpAddress())).normalize
         normalized should be(normalizedDockerApp.copy(networks = Seq(Network())))
       }
 
@@ -125,18 +125,18 @@ class AppNormalizationTest extends UnitTest {
             Option(IpDiscovery(
               ports = Seq(IpDiscoveryPort(34, "port1"))
             ))
-          ))).norm
+          ))).normalize
         }
         ex.getMessage should include("discovery.ports")
       }
 
       "using legacy IP/CT networking API" in new Fixture {
-        legacyMesosApp.norm should be(normalizedMesosApp)
+        legacyMesosApp.normalize should be(normalizedMesosApp)
       }
 
       "using legacy IP/CT networking API without a named network" in new Fixture {
         legacyMesosApp.copy(ipAddress = legacyMesosApp.ipAddress.map(_.copy(
-          networkName = None))).norm should be(normalizedMesosApp.copy(networks = Seq(Network())))
+          networkName = None))).normalize should be(normalizedMesosApp.copy(networks = Seq(Network())))
       }
     }
 
@@ -148,7 +148,7 @@ class AppNormalizationTest extends UnitTest {
 
       "for an empty app update" in {
         val raw = AppUpdate()
-        raw.norm should be(raw)
+        raw.normalize should be(raw)
       }
 
       "for an empty docker app update" in {
@@ -161,7 +161,7 @@ class AppNormalizationTest extends UnitTest {
           )),
           networks = Option(Seq(Network()))
         )
-        raw.norm should be(raw)
+        raw.normalize should be(raw)
       }
     }
 
@@ -182,7 +182,7 @@ class AppNormalizationTest extends UnitTest {
           networks = Seq(Network(mode = NetworkMode.ContainerBridge)),
           unreachableStrategy = Option(UnreachableEnabled.Default)
         )
-        raw.norm should be(raw)
+        raw.normalize should be(raw)
       }
 
       "provide default port mappings when left unspecified for an app container w/ bridge networking" in {
@@ -195,7 +195,7 @@ class AppNormalizationTest extends UnitTest {
           networks = Seq(Network(mode = NetworkMode.ContainerBridge)),
           unreachableStrategy = Option(UnreachableEnabled.Default)
         )
-        raw.norm should be(raw.copy(container = raw.container.map(_.copy(
+        raw.normalize should be(raw.copy(container = raw.container.map(_.copy(
           portMappings = Option(Seq(ContainerPortMapping(hostPort = Option(0), name = Option("default"))))))))
       }
 
@@ -209,7 +209,7 @@ class AppNormalizationTest extends UnitTest {
           networks = Seq(Network(name = Option("network1"), mode = NetworkMode.Container)),
           unreachableStrategy = Option(UnreachableEnabled.Default)
         )
-        raw.norm should be(raw.copy(container = raw.container.map(_.copy(
+        raw.normalize should be(raw.copy(container = raw.container.map(_.copy(
           portMappings = Option(Seq(ContainerPortMapping(name = Option("default"))))))))
       }
 
@@ -221,7 +221,7 @@ class AppNormalizationTest extends UnitTest {
           networks = Apps.DefaultNetworks,
           unreachableStrategy = Option(UnreachableEnabled.Default)
         )
-        raw.norm should be(raw)
+        raw.normalize should be(raw)
       }
 
       "provide a default port definition when no port definitions are specified" in {
@@ -231,7 +231,7 @@ class AppNormalizationTest extends UnitTest {
           networks = Apps.DefaultNetworks,
           unreachableStrategy = Option(UnreachableEnabled.Default)
         )
-        raw.norm should be(raw.copy(portDefinitions = Option(Apps.DefaultPortDefinitions)))
+        raw.normalize should be(raw.copy(portDefinitions = Option(Apps.DefaultPortDefinitions)))
       }
     }
   }

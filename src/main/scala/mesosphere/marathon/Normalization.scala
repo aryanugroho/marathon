@@ -7,7 +7,7 @@ trait Normalization[T] extends AnyRef {
 object Normalization {
 
   implicit class Normalized[T](val a: T) extends AnyVal {
-    def norm(implicit f: Normalization[T]): T = f.normalized(a)
+    def normalize(implicit f: Normalization[T]): T = f.normalized(a)
   }
 
   def apply[T](f: (T => T)): Normalization[T] = new Normalization[T] {
