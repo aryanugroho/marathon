@@ -683,7 +683,8 @@ class RunSpecValidatorTest extends UnitTest {
 
       val f = new Fixture
       val app = Json.parse(f.cassandraWithoutResidency).as[App]
-      val result = validAppDefinition(Raml.fromRaml(AppNormalization.apply(validateOrThrow(AppNormalization.forDeprecatedFields(app)), AppNormalization.Configure(None))))
+      val result = validAppDefinition(Raml.fromRaml(AppNormalization(
+        AppNormalization.Configure(None)).normalized(validateOrThrow(AppNormalization.forDeprecated.normalized(app)))))
       result.isSuccess shouldBe true
     }
 
@@ -692,7 +693,8 @@ class RunSpecValidatorTest extends UnitTest {
       val f = new Fixture
       val base = Json.parse(f.cassandraWithoutResidency).as[App]
       val app = base.copy(upgradeStrategy = Some(raml.UpgradeStrategy(0, 0)))
-      val result = validAppDefinition(Raml.fromRaml(AppNormalization.apply(validateOrThrow(AppNormalization.forDeprecatedFields(app)), AppNormalization.Configure(None))))
+      val result = validAppDefinition(Raml.fromRaml(AppNormalization(
+        AppNormalization.Configure(None)).normalized(validateOrThrow(AppNormalization.forDeprecated.normalized(app)))))
       withClue(result) {
         result.isSuccess shouldBe true
       }

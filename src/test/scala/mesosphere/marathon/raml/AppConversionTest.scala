@@ -2,9 +2,7 @@ package mesosphere.marathon
 package raml
 
 import mesosphere.{ UnitTest, ValidationClue }
-import mesosphere.marathon.api.v2.AppNormalization
-import mesosphere.marathon.api.v2.Validation
-import mesosphere.marathon.api.v2.validation.AppValidation
+import mesosphere.marathon.api.v2.{ AppNormalization, AppsResource }
 import mesosphere.marathon.core.health.{ MarathonHttpHealthCheck, PortReference }
 import mesosphere.marathon.core.pod.{ BridgeNetwork, HostNetwork }
 import mesosphere.marathon.state._
@@ -63,16 +61,8 @@ class AppConversionTest extends UnitTest with ValidationClue {
       val features = Set(Features.SECRETS)
       val readApp: AppDefinition = withValidationClue {
         Raml.fromRaml(
-          AppNormalization(
-            Validation.validateOrThrow(
-              AppNormalization.forDeprecatedFields(
-                Validation.validateOrThrow(
-                  json.as[App]
-                )(AppValidation.validateOldAppAPI)
-              )
-            )(AppValidation.validateCanonicalAppAPI(features)),
-            AppNormalization.Configure(None)
-          )
+          AppsResource.appNormalization(
+            AppsResource.NormalizationConfig(features, AppNormalization.Configure(None))).normalized(ramlApp)
         )
       }
       Then("The app is identical")
@@ -89,7 +79,8 @@ class AppConversionTest extends UnitTest with ValidationClue {
       val protoRamlApp = app.toProto.toRaml[App]
 
       Then("The direct and indirect RAML conversions are identical")
-      val normalizedProtoRamlApp = AppNormalization(AppNormalization.forDeprecatedFields(protoRamlApp), AppNormalization.Configure(None))
+      val normalizedProtoRamlApp = AppNormalization(
+        AppNormalization.Configure(None)).normalized(AppNormalization.forDeprecated.normalized(protoRamlApp))
       normalizedProtoRamlApp should be(ramlApp)
     }
   }

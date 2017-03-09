@@ -300,16 +300,16 @@ object AppsResource {
 
   def appNormalization(config: NormalizationConfig): Normalization[raml.App] = Normalization { app =>
     validateOrThrow(app)(AppValidation.validateOldAppAPI)
-    val migrated = AppNormalization.forDeprecatedFields(app)
+    val migrated = AppNormalization.forDeprecated.normalized(app)
     validateOrThrow(migrated)(AppValidation.validateCanonicalAppAPI(config.enabledFeatures))
-    AppNormalization(migrated, config.config)
+    AppNormalization(config.config).normalized(migrated)
   }
 
   def appUpdateNormalization(config: NormalizationConfig): Normalization[raml.AppUpdate] = Normalization { app =>
     validateOrThrow(app)(AppValidation.validateOldAppUpdateAPI)
-    val migrated = AppNormalization.forDeprecatedFields(app)
+    val migrated = AppNormalization.forDeprecatedUpdates.normalized(app)
     validateOrThrow(app)(AppValidation.validateCanonicalAppUpdateAPI(config.enabledFeatures))
-    AppNormalization(migrated, config.config)
+    AppNormalization.forUpdates(config.config).normalized(migrated)
   }
 
   def authzSelector(implicit authz: Authorizer, identity: Identity): AppSelector = Selector[AppDefinition] { app =>

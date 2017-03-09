@@ -48,11 +48,12 @@ class AppDefinitionFormatsTest extends UnitTest
       // this is roughly the equivalent of how the original Formats behaved, which is notable because Formats
       // (like this code) reverses the order of validation and normalization
       Validation.validateOrThrow(
-        AppNormalization.apply(
-          Validation.validateOrThrow(
-            AppNormalization.forDeprecatedFields(app))(AppValidation.validateOldAppAPI),
-          AppNormalization.Configure(None)
-        ))(AppValidation.validateCanonicalAppAPI(Set.empty)))
+        AppNormalization.apply(AppNormalization.Configure(None))
+          .normalized(Validation.validateOrThrow(
+            AppNormalization.forDeprecated.normalized(app))(AppValidation.validateOldAppAPI)))(
+          AppValidation.validateCanonicalAppAPI(Set.empty)
+        )
+    )
 
   "AppDefinitionFormats" should {
     "ToJson" in {

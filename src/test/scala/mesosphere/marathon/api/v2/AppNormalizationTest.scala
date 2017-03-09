@@ -30,21 +30,21 @@ class AppNormalizationTest extends UnitTest {
           check.port should be('empty)
           check.portIndex should be('empty)
 
-          val normalized = AppNormalization.normalizeHealthChecks(Set(check))
+          val normalized = AppNormalization.normalizeHealthChecks.normalized(Set(check))
           normalized should be(Set(check.copy(portIndex = Option(0))))
         }
         s"${check.protocol} health check w/ port spec isn't normalized" in {
           val checkWithPort = check.copy(port = Option(88))
           checkWithPort.portIndex should be('empty)
 
-          val normalized = AppNormalization.normalizeHealthChecks(Set(checkWithPort))
+          val normalized = AppNormalization.normalizeHealthChecks.normalized(Set(checkWithPort))
           normalized should be(Set(checkWithPort))
         }
         s"${check.protocol} health check w/ port index spec isn't normalized" in {
           val checkWithPort = check.copy(portIndex = Option(5))
           checkWithPort.port should be('empty)
 
-          val normalized = AppNormalization.normalizeHealthChecks(Set(checkWithPort))
+          val normalized = AppNormalization.normalizeHealthChecks.normalized(Set(checkWithPort))
           normalized should be(Set(checkWithPort))
         }
       }
@@ -58,29 +58,29 @@ class AppNormalizationTest extends UnitTest {
 
       "COMMAND health check isn't changed" in {
         val check = AppHealthCheck(protocol = AppHealthCheckProtocol.Command)
-        val normalized = AppNormalization.normalizeHealthChecks(Set(check))
+        val normalized = AppNormalization.normalizeHealthChecks.normalized(Set(check))
         normalized should be(Set(check))
       }
     }
 
     "normalize fetch and uris fields" when {
       "uris are present and fetch is not" in {
-        val urisNoFetch = AppNormalization.normalizeFetch(Option(Seq("a")), None)
+        val urisNoFetch = AppNormalization.Artifacts(Option(Seq("a")), None).norm.fetch
         val expected = Option(Seq(Artifact("a", extract = false)))
         urisNoFetch should be(expected)
       }
       "uris are present and fetch is an empty list" in {
-        val urisEmptyFetch = AppNormalization.normalizeFetch(Option(Seq("a")), Option(Nil))
+        val urisEmptyFetch = AppNormalization.Artifacts(Option(Seq("a")), Option(Nil)).norm.fetch
         val expected = Option(Seq(Artifact("a", extract = false)))
         urisEmptyFetch should be(expected)
       }
       "fetch is present and uris are not" in {
-        val fetchNoUris = AppNormalization.normalizeFetch(None, Option(Seq(Artifact("a"))))
+        val fetchNoUris = AppNormalization.Artifacts(None, Option(Seq(Artifact("a")))).norm.fetch
         val expected = Option(Seq(Artifact("a")))
         fetchNoUris should be(expected)
       }
       "fetch is present and uris are an empty list" in {
-        val fetchEmptyUris = AppNormalization.normalizeFetch(Option(Nil), Option(Seq(Artifact("a"))))
+        val fetchEmptyUris = AppNormalization.Artifacts(Option(Nil), Option(Seq(Artifact("a")))).norm.fetch
         val expected = Option(Seq(Artifact("a")))
         fetchEmptyUris should be(expected)
       }
@@ -89,7 +89,8 @@ class AppNormalizationTest extends UnitTest {
     "migrate ipAddress discovery to container port mappings with a default network specified" when {
       val defaultNetworkName = Option("default-network0")
       implicit val appNormalizer = Normalization[App] { app =>
-        AppNormalization(AppNormalization.forDeprecatedFields(app), AppNormalization.Configure(defaultNetworkName))
+        AppNormalization(AppNormalization.Configure(defaultNetworkName))
+          .normalized(AppNormalization.forDeprecated.normalized(app))
       }
 
       "using legacy docker networking API, without a named network" in new Fixture {
@@ -105,7 +106,7 @@ class AppNormalizationTest extends UnitTest {
 
     "migrate ipAddress discovery to container port mappings without a default network specified" when {
       implicit val appNormalizer = Normalization[App] { app =>
-        AppNormalization(AppNormalization.forDeprecatedFields(app), AppNormalization.Configure(None))
+        AppNormalization(AppNormalization.Configure(None)).normalized(AppNormalization.forDeprecated.normalized(app))
       }
 
       "using legacy docker networking API" in new Fixture {
@@ -141,7 +142,8 @@ class AppNormalizationTest extends UnitTest {
 
     "not assign defaults for app update normalization" when {
       implicit val appUpdateNormalizer = Normalization[AppUpdate] { app =>
-        AppNormalization(AppNormalization.forDeprecatedFields(app), AppNormalization.Configure(None))
+        AppNormalization.forUpdates(AppNormalization.Configure(None))
+          .normalized(AppNormalization.forDeprecatedUpdates.normalized(app))
       }
 
       "for an empty app update" in {
@@ -166,7 +168,7 @@ class AppNormalizationTest extends UnitTest {
     "preserve user intent w/ respect to opting into and out of default ports" when {
 
       implicit val appNormalizer = Normalization[App] { app =>
-        AppNormalization(AppNormalization.forDeprecatedFields(app), AppNormalization.Configure(None))
+        AppNormalization(AppNormalization.Configure(None)).normalized(AppNormalization.forDeprecated.normalized(app))
       }
 
       "allow an app to declare empty port mappings" in {

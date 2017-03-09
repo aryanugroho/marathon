@@ -72,10 +72,12 @@ class AppUpdateValidatorTest extends UnitTest with Matchers {
         """.stripMargin).as[App]
 
       val appDef = Raml.fromRaml(
-        AppNormalization.apply(AppNormalization.forDeprecatedFields(originalApp), AppNormalization.Configure(None)))
+        AppNormalization.apply(AppNormalization.Configure(None))
+          .normalized(AppNormalization.forDeprecated.normalized(originalApp)))
 
-      val appUpdate = AppNormalization.apply(AppNormalization.forDeprecatedFields(Json.parse(
-        """
+      val appUpdate = AppNormalization.forUpdates(AppNormalization.Configure(None)).normalized(
+        AppNormalization.forDeprecatedUpdates.normalized(Json.parse(
+          """
           |{
           |	"id": "/sleepy-moby",
           |	"cmd": "sleep 1000",
@@ -105,7 +107,7 @@ class AppUpdateValidatorTest extends UnitTest with Matchers {
           |	},
           |	"requirePorts": false
           |}
-        """.stripMargin).as[AppUpdate]), AppNormalization.Configure(None))
+        """.stripMargin).as[AppUpdate]))
 
       assert(validate(Raml.fromRaml(Raml.fromRaml(appUpdate -> appDef))).isSuccess)
     }
