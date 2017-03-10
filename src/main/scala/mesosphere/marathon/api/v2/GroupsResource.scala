@@ -150,7 +150,7 @@ class GroupsResource @Inject() (
       // base seems wrong.
       val groupBase = g.id.map(_.toPath.canonicalPath(basePath)).getOrElse(basePath)
 
-      // TODO(jdef): recursion without tailrec
+      // TODO: recursion without tailrec
       normalizeApps(groupBase, g)
     })
 

@@ -18,23 +18,21 @@ object KillSelection {
 
   case object YoungestFirst extends KillSelection {
     override val value = raml.KillSelection.YoungestFirst.value
-    override def toProto: Protos.KillSelection =
+    override val toProto: Protos.KillSelection =
       Protos.KillSelection.YoungestFirst
   }
   case object OldestFirst extends KillSelection {
     override val value = raml.KillSelection.OldestFirst.value
-    override def toProto: Protos.KillSelection =
+    override val toProto: Protos.KillSelection =
       Protos.KillSelection.OldestFirst
   }
 
-  def DefaultKillSelection: KillSelection = raml.KillSelection.DefaultValue.fromRaml
+  lazy val DefaultKillSelection: KillSelection = raml.KillSelection.DefaultValue.fromRaml
 
-  def fromProto(proto: Protos.KillSelection): KillSelection = {
-    proto match {
-      case Protos.KillSelection.YoungestFirst =>
-        YoungestFirst
-      case Protos.KillSelection.OldestFirst =>
-        OldestFirst
-    }
-  }
+  private[this] val proto2Model = Map(
+    Protos.KillSelection.YoungestFirst -> YoungestFirst,
+    Protos.KillSelection.OldestFirst -> OldestFirst
+  )
+
+  def fromProto(proto: Protos.KillSelection): KillSelection = proto2Model(proto)
 }

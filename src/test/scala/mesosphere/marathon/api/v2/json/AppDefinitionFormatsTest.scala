@@ -184,6 +184,11 @@ class AppDefinitionFormatsTest extends UnitTest
       }
     }
 
+    "FromJSON should fail when 'env' contains invalid keys" in {
+      val json = Json.parse(""" { "id": "test", "cmd": "foo", "env": { "%^!": "foo" } }""")
+      a[ValidationFailedException] shouldBe thrownBy { normalizeAndConvert(json.as[raml.App]) }
+    }
+
     """ToJSON should correctly handle missing acceptedResourceRoles""" in {
       val appDefinition = AppDefinition(id = PathId("test"), acceptedResourceRoles = Set.empty)
       val json = Json.toJson(appDefinition)

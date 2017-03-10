@@ -325,11 +325,23 @@ trait MesosTest {
 }
 
 object MesosTest {
-  def clean(client: MesosFacade): Unit = {
-    while (client.state.value.agents.exists(agent => !agent.usedResources.isEmpty || agent.reservedResourcesByRole.nonEmpty)) {
-      client.frameworkIds().value.foreach(client.teardown)
-      Thread.sleep(2000L)
-    }
+  def clean(client: MesosFacade, cleanTimeout: Duration = 30.seconds)(implicit ec: ExecutionContext, s: Scheduler): Unit = {
+    def teardown: Future[Done] =
+      Retry("teardown marathon", maxDuration = cleanTimeout, minDelay = 0.25.second, maxDelay = 2.second) {
+        Future.fold(client.frameworkIds().value.map(client.teardown(_).map { response =>
+          val status = response.status.intValue
+          if (status == 200) Done
+          else throw new IllegalStateException(s"server returned status $status")
+        }))(Done) { (_, _) => Done }.map { _ =>
+          val agents = client.state.value.agents
+          agents.find(a => !a.usedResources.isEmpty || a.reservedResourcesByRole.nonEmpty).fold(Done) { agent =>
+            throw new IllegalStateException(
+              s"agent allocated on agent ${agent.id}: " +
+                s"used = ${agent.usedResources}, reserved = ${agent.reservedResourcesByRole}")
+          }
+        }
+      }
+    Await.result(teardown, Duration.Inf)
   }
 }
 
