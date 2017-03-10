@@ -78,17 +78,10 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
           }
         }
         stageWithCommitStatus("3. Test Integration") {
-          // clean unit test reports
-          sh """sudo rm -fr \
-            target/scala-2.11/scoverage-report/* \
-            target/scala-2.11/coverage-report/* \
-            target/scala-2.11/scoverage-data/*
-            """
-
           try {
               timeout(time: 20, unit: 'MINUTES') {
                 withEnv(['RUN_DOCKER_INTEGRATION_TESTS=true', 'RUN_MESOS_INTEGRATION_TESTS=true']) {
-                   sh "sudo -E sbt -Dsbt.log.format=false coverage integration:test mesos-simulation/integration:test coverageReport"
+                   sh "sudo -E sbt -Dsbt.log.format=false clean coverage integration:test coverageReport mesos-simulation/integration:test"
                 }
             }
           } finally {
