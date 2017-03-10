@@ -80,9 +80,9 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
         stageWithCommitStatus("3. Test Integration") {
           // clean unit test reports
           sh """sudo rm -fr \
-            target/scala-2.11/scoverage-report \
-            target/scala-2.11/coverage-report \
-            target/scala-2.11/scoverage-data
+            target/scala-2.11/scoverage-report/* \
+            target/scala-2.11/coverage-report/* \
+            target/scala-2.11/scoverage-data/*
             """
 
           try {
