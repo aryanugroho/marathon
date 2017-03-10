@@ -79,7 +79,7 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
         }
         stageWithCommitStatus("3. Test Integration") {
           // clean unit test reports
-          sh """rm -fr \
+          sh """sudo rm -fr \
             target/scala-2.11/scoverage-report \
             target/scala-2.11/coverage-report \
             target/scala-2.11/scoverage-data
@@ -98,8 +98,8 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
             // The archive steps does not allow a different target path. So we
             // move the files to avoid conflicts with the reports from the unit
             // test run.
-            sh "mv target/scala-2.11/scoverage-report/ target/scala-2.11/scoverage-report-integration"
-            sh "mv target/scala-2.11/coverage-report/cobertura.xml target/scala-2.11/coverage-report/cobertura-integration.xml"
+            sh "sudo mv target/scala-2.11/scoverage-report/ target/scala-2.11/scoverage-report-integration"
+            sh "sudo mv target/scala-2.11/coverage-report/cobertura.xml target/scala-2.11/coverage-report/cobertura-integration.xml"
             archiveArtifacts(
                 artifacts: 'target/**/coverage-report/cobertura-integration.xml, target/**/scoverage-report-integration/**',
                 allowEmptyArchive: true)
