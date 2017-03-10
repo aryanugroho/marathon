@@ -72,10 +72,19 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
               }
           } finally {
             junit allowEmptyResults: true, testResults: 'target/test-reports/**/*.xml'
-            archiveArtifacts artifacts: 'target/**/coverage-report/cobertura.xml, target/**/scoverage-report/**', allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: 'target/**/coverage-report/cobertura.xml, target/**/scoverage-report/**',
+                allowEmptyArchive: true)
           }
         }
         stageWithCommitStatus("3. Test Integration") {
+          // clean unit test reports
+          sh """rm -fr \
+            target/scala-2.11/scoverage-report \
+            target/scala-2.11/coverage-report \
+            target/scala-2.11/scoverage-data
+            """
+
           try {
               timeout(time: 20, unit: 'MINUTES') {
                 withEnv(['RUN_DOCKER_INTEGRATION_TESTS=true', 'RUN_MESOS_INTEGRATION_TESTS=true']) {
@@ -84,6 +93,16 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
             }
           } finally {
             junit allowEmptyResults: true, testResults: 'target/test-reports/integration/**/*.xml'
+            // scoverage does not allow the configuration of a different output
+            // path: https://github.com/scoverage/sbt-scoverage/issues/211
+            // The archive steps does not allow a different target path. So we
+            // move the files to avoid conflicts with the reports from the unit
+            // test run.
+            sh "mv target/scala-2.11/scoverage-report/ target/scala-2.11/scoverage-report-integration"
+            sh "mv target/scala-2.11/coverage-report/cobertura.xml target/scala-2.11/coverage-report/cobertura-integration.xml"
+            archiveArtifacts(
+                artifacts: 'target/**/coverage-report/cobertura-integration.xml, target/**/scoverage-report-integration/**',
+                allowEmptyArchive: true)
           }
         }
         stage("4. Assemble Runnable Binaries") {
